@@ -8,7 +8,7 @@ type AvailabilityService struct{
 
 func New() *AvailabilityService{
 	return &AvailabilityService{}
-}
+} 
 
 
 type Service interface {

@@ -17,10 +17,11 @@ type Booking struct {
 	SeatIDs   []string      `json:"seat_ids"`
 	Status    BookingStatus `json:"status"`
 	Timestamp time.Time     `json:"timestamp"`
+	Price     float64       `json:"price"`
 }
 
 type BookingRepository interface {
-	Create(booking *Booking) error
+	Save(booking *Booking) (*Booking, error)
 	UpdateStatus(id string, status BookingStatus) error
 	GetByID(id string) (*Booking, error)
 }
