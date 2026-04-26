@@ -1,6 +1,8 @@
 package catalog
 
-import "time"
+import (
+	"time"
+)
 
 type Movie struct {
 	ID          string    `json:"id"`
@@ -51,9 +53,8 @@ type ShowRepository interface {
 
 type ShowSeatRepository interface {
 	GetByID(id string) (*ShowSeat, error)
-	GetByShow(showID string) ([]ShowSeat, error)
 	Save(showSeat *ShowSeat) error
 	UpdateStatus(id string, status ShowSeatStatus) error
 	UpdateStatuses(ids []string, status ShowSeatStatus) error
-	GetAvailableSeats(showID string) (*ShowSeat, error)
+	GetAvailableSeats(showID string) ( []ShowSeat, error)
 }
