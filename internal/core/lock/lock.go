@@ -3,7 +3,6 @@ package lock
 import (
 	"fmt"
 	"sync"
-	"time"
 )
 
 type LockService interface {
@@ -22,7 +21,7 @@ func NewInMemoryLockService() *InMemoryLockService {
     }
 }
 
-func (s *InMemoryLockService) Lock(key string) error {
+func (s *InMemoryLockService) TryLock(key string) error {
     s.mu.Lock()
     defer s.mu.Unlock()
 

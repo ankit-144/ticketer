@@ -43,6 +43,8 @@ type Service interface {
 	ConfirmBooking(bookingID string) error
 
 	CancelBooking(bookingID string) error
+
+	RevertBooking(bookingID string) error
 }
 
 func (s *BookingService) InitiateBooking(userID string, showID string, seatIDs []string) (*Booking, error) {
@@ -53,6 +55,7 @@ func (s *BookingService) InitiateBooking(userID string, showID string, seatIDs [
 	// 5. Return Token (wait for payment)
 
     sort.Strings(seatIDs)
+    
 
     show , err := s.showRepo.GetByID(showID)
     if err != nil {

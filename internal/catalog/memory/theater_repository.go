@@ -73,7 +73,7 @@ func (tRepo *TheaterRepository) AddSeatToScreen(screenID string, seat *catalog.S
 	screen, err := tRepo.GetScreen(screenID)
 	
 	if err != nil {
-		return  nil, fmt.Errorf("Error while getting Screen for Id: %v", screenID, err)
+		return  nil, fmt.Errorf("Error while getting Screen for Id: %v: %w", screenID, err)
 	}
 	
 	screen.Seats = append(screen.Seats, *seat)
