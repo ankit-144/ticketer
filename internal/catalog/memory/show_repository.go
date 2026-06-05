@@ -40,11 +40,8 @@ func (r *ShowRepository) GetByMovie(movieID string) ([]catalog.Show, error) {
 	}
 	return result, nil
 }
-
+// couldn't implement GetByTheater because cant get Theater from ScreenID.
 func (r *ShowRepository) GetByTheater(theaterID string) ([]catalog.Show, error) {
-	// Note: In a real DB, we'd query by ScreenID which belongs to a Theater.
-	// For memory, we'll just return all for now or filter if we had a screen-to-theater mapping.
-	// This is a simplified version.
 	return nil, errors.New("not implemented: requires screen-to-theater mapping")
 }
 
@@ -59,5 +56,5 @@ func (r *ShowRepository) Save(show *catalog.Show) error {
 	return nil
 }
 
-// couldn't implement GetByTheater because cant get Theater from ScreenID.
+
 

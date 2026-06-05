@@ -3,6 +3,7 @@ package booking
 import (
 	"fmt"
 	"sort"
+	"time"
 	"ticketer/internal/availability"
 	"ticketer/internal/catalog"
 	"ticketer/internal/pricing"
@@ -62,7 +63,12 @@ func (s *BookingService) InitiateBooking(userID string, showID string, seatIDs [
 	}
 
 	// acquire lock on seats using availability service
-	err = s.availabilityService.LockSeats(showID, seatIDs)
+	err = s.availabilityService.LockSeats(seatIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to lock seats: %w", err)
+	}
+	
+	err = s.availabilityService.UpdateStatuses(seatIDs,catalog.ShowSeatStatusLocked)
 	if err != nil {
 		return nil, fmt.Errorf("failed to lock seats: %w", err)
 	}
@@ -71,7 +77,7 @@ func (s *BookingService) InitiateBooking(userID string, showID string, seatIDs [
 	for _, seatID := range seatIDs {
 		seat, err := s.showSeatRepo.GetByID(seatID)
 		if err != nil {
-			_ = s.availabilityService.ReleaseSeats(showID, seatIDs)
+			_ = s.availabilityService.ReleaseSeats(seatIDs)
 			return nil, err
 		}
 		seats = append(seats, *seat)
@@ -79,22 +85,24 @@ func (s *BookingService) InitiateBooking(userID string, showID string, seatIDs [
 
 	price, err := s.pricingService.CalculatePrice(*movie, *show, seats)
 	if err != nil {
-		_ = s.availabilityService.ReleaseSeats(showID, seatIDs)
+		_ = s.availabilityService.ReleaseSeats(seatIDs)
 		return nil, err
 	}
 
 	booking := &Booking{
-		ID:      uuid.New().String(),
-		UserID:  userID,
-		ShowID:  showID,
-		SeatIDs: seatIDs,
-		Price:   price,
-		Status:  BookingStatusPending,
+		ID:               uuid.New().String(),
+		UserID:           userID,
+		ShowID:           showID,
+		SeatIDs:          seatIDs,
+		Price:            price,
+		Status:           BookingStatusPending,
+		CreatedTimestamp: time.Now(),
+		UpdatedTimestamp: time.Now(),
 	}
 
 	booking, err = s.bookingRepo.Save(booking)
 	if err != nil {
-		_ = s.availabilityService.ReleaseSeats(showID, seatIDs)
+		_ = s.availabilityService.ReleaseSeats( seatIDs)
 		return nil, fmt.Errorf("booking failed: %v", err)
 	}
 
@@ -112,7 +120,7 @@ func (s *BookingService) ConfirmBooking(bookingID string) error {
 	}
 
 	// Update seat statuses to booked using availability service
-	err = s.availabilityService.BookSeats(booking.ShowID, booking.SeatIDs)
+	err = s.availabilityService.BookSeats(booking.SeatIDs)
 	if err != nil {
 		return err
 	}
@@ -137,7 +145,7 @@ func (s *BookingService) RevertBooking(bookingID string) error {
 	}
 
 	// Release locked seats
-	err = s.availabilityService.ReleaseSeats(booking.ShowID, booking.SeatIDs)
+	err = s.availabilityService.ReleaseSeats(booking.SeatIDs)
 	if err != nil {
 		return err
 	}
@@ -161,7 +169,7 @@ func (s *BookingService) CancelBooking(bookingID string) error {
 	}
 
 	// Release seats back to availability pool
-	err = s.availabilityService.ReleaseSeats(booking.ShowID, booking.SeatIDs)
+	err = s.availabilityService.ReleaseSeats(booking.SeatIDs)
 	if err != nil {
 		return err
 	}

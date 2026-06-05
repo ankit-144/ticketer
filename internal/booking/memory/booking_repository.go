@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"sync"
+	"time"
 	"ticketer/internal/booking"
 )
 
@@ -40,6 +41,7 @@ func (r *BookingRepository) UpdateStatus(id string, status booking.BookingStatus
 		return errors.New("booking not found")
 	}
 	b.Status = status
+	b.UpdatedTimestamp = time.Now()
 	return nil
 }
 

@@ -12,8 +12,6 @@ type MovieRepository struct {
 }
 
 
-
-// NewMovieRepository initializes a new in-memory movie repository.
 func NewMovieRepository() *MovieRepository {
 	return &MovieRepository{
 		movies: make(map[string]*catalog.Movie),

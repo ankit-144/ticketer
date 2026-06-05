@@ -27,7 +27,6 @@ func (tRepo *TheaterRepository) GetByID(id string) (*catalog.Theater, error) {
 	if val, ok := tRepo.theater[id]; ok {
 		return val, nil
 	}
-
 	return nil, fmt.Errorf("no theater found for ID: %s", id)
 }
 
@@ -85,11 +84,9 @@ func (tRepo *TheaterRepository) AddScreenToTheater(theaterID string, screen *cat
 	if !ok {
 		return fmt.Errorf("theater not found for ID: %s", theaterID)
 	}
-
 	screen.TheaterID = theaterID
 	theater.Screens = append(theater.Screens, *screen)
 	tRepo.screenTheaterMap[screen.ID] = theaterID
-
 	return nil
 }
 

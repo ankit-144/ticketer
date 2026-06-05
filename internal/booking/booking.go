@@ -16,7 +16,8 @@ type Booking struct {
 	UserID    string        `json:"user_id"`
 	SeatIDs   []string      `json:"seat_ids"`
 	Status    BookingStatus `json:"status"`
-	Timestamp time.Time     `json:"timestamp"`
+	CreatedTimestamp time.Time     `json:"created_timestamp"`
+	UpdatedTimestamp time.Time `json:"updated_timestamp"`
 	Price     float64       `json:"price"`
 }
 

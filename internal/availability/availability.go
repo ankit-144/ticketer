@@ -23,66 +23,67 @@ func New(showSeatRepo catalog.ShowSeatRepository, lockService lock.LockService) 
 
 type Service interface {
 	GetAvailableSeats(showID string) ([]catalog.ShowSeat, error)
-	LockSeats(showID string, seatIDs []string) error
-	ReleaseSeats(showID string, seatIDs []string) error
-	BookSeats(showID string, seatIDs []string) error
+	LockSeats(showSeatIDs []string) error
+	UpdateStatuses(showSeatIDs []string, status catalog.ShowSeatStatus) error
+	ReleaseSeats(showSeatIDs []string) error
+	BookSeats(showSeatIDs []string) error
 }
 
 func (s *AvailabilityService) GetAvailableSeats(showID string) ([]catalog.ShowSeat, error) {
 	return s.showSeatRepo.GetAvailableSeats(showID)
 }
 
-func (s *AvailabilityService) LockSeats(showID string, seatIDs []string) error {
+// for showSeatIDs which are locked only can be booked, this is not inplemented in bookSeats
+func (s *AvailabilityService) LockSeats(showSeatIDs []string) error {
 	var successfullyLocked []string
 
-	for _, seatID := range seatIDs {
-		err := s.lockService.TryLock(seatID)
+	for _, showSeatID := range showSeatIDs {
+		err := s.lockService.TryLock(showSeatID)
 		if err != nil {
 			s.releaseLocks(successfullyLocked)
 			return err
 		}
 		
-		// FIX: We MUST verify the seat is actually AVAILABLE in the database.
-		// If it was already BOOKED yesterday, we should reject it!
-		seat, err := s.showSeatRepo.GetByID(seatID)
+		seat, err := s.showSeatRepo.GetByID(showSeatID)
 		if err != nil {
 			s.releaseLocks(successfullyLocked)
-			_ = s.lockService.Unlock(seatID)
+			_ = s.lockService.Unlock(showSeatID)
 			return err
 		}
 		if seat.Status != catalog.ShowSeatStatusAvailable {
 			s.releaseLocks(successfullyLocked)
-			_ = s.lockService.Unlock(seatID)
-			return fmt.Errorf("seat %s is not available (current status: %s)", seatID, seat.Status)
+			_ = s.lockService.Unlock(showSeatID)
+			return fmt.Errorf("seat %s is not available (current status: %s)", showSeatID, seat.Status)
 		}
 
-		successfullyLocked = append(successfullyLocked, seatID)
+		successfullyLocked = append(successfullyLocked, showSeatID)
 	}
-
-	err := s.showSeatRepo.UpdateStatuses(seatIDs, catalog.ShowSeatStatusLocked)
+	return nil
+}
+func (s *AvailabilityService) UpdateStatuses(showSeatIDs []string, status catalog.ShowSeatStatus) error {
+   err := s.showSeatRepo.UpdateStatuses(showSeatIDs, status)
 	if err != nil {
-		s.releaseLocks(seatIDs)
+		s.releaseLocks(showSeatIDs)
 		return err
 	}
-
 	return nil
 }
 
-func (s *AvailabilityService) ReleaseSeats(showID string, seatIDs []string) error {
-	err := s.showSeatRepo.UpdateStatuses(seatIDs, catalog.ShowSeatStatusAvailable)
-	s.releaseLocks(seatIDs)
+func (s *AvailabilityService) ReleaseSeats(showSeatIDs []string) error {
+  	err := s.showSeatRepo.UpdateStatuses(showSeatIDs, catalog.ShowSeatStatusAvailable)
+	s.releaseLocks(showSeatIDs)
 	return err
 }
 
-func (s *AvailabilityService) BookSeats(showID string, seatIDs []string) error {
-	err := s.showSeatRepo.UpdateStatuses(seatIDs, catalog.ShowSeatStatusBooked)
-	s.releaseLocks(seatIDs)
+func (s *AvailabilityService) BookSeats(showSeatIDs []string) error {
+	err := s.showSeatRepo.UpdateStatuses(showSeatIDs, catalog.ShowSeatStatusBooked)
+	s.releaseLocks(showSeatIDs)
 	return err
 }
 
-func (s *AvailabilityService) releaseLocks(seatIDs []string) {
-	for _, seatID := range seatIDs {
-		_ = s.lockService.Unlock(seatID)
+func (s *AvailabilityService) releaseLocks(showSeatIDs []string) {
+	for _, showSeatID := range showSeatIDs {
+		_ = s.lockService.Unlock(showSeatID)
 	}
 }
 

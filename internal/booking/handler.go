@@ -5,24 +5,21 @@ import (
 	"net/http"
 )
 
-// RouteRegistrar is implemented by any handler that wants to register
-// its routes on the shared HTTP mux.  This is the contract used by the
-// fx "routes" group.
+
 type RouteRegistrar interface {
 	RegisterRoutes(mux *http.ServeMux)
 }
 
-// Handler exposes the BookingService over HTTP.
+
 type Handler struct {
 	service Service
 }
 
-// NewHandler constructs a Handler with its service dependency.
+
 func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
-// RegisterRoutes mounts all booking-related endpoints on the given mux.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/bookings", h.initiateBooking)
 	mux.HandleFunc("POST /api/bookings/{id}/confirm", h.confirmBooking)
@@ -30,7 +27,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/bookings/{id}/revert", h.revertBooking)
 }
 
-// --- request / response types ------------------------------------------------
+
 
 type initiateBookingRequest struct {
 	UserID  string   `json:"user_id"`
@@ -47,7 +44,7 @@ type bookingResponse struct {
 	Status  string   `json:"status"`
 }
 
-// --- handlers ----------------------------------------------------------------
+
 
 func (h *Handler) initiateBooking(w http.ResponseWriter, r *http.Request) {
 	var req initiateBookingRequest

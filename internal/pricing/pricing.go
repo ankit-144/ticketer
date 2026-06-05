@@ -26,20 +26,19 @@ type Service interface {
 func (s *PricingService) CalculatePrice(movie catalog.Movie, show catalog.Show, seats []catalog.ShowSeat) (float64, error) {
 	totalPrice := 0.0
 
-	// 1. Time Surcharge
-	// Assuming 20% surcharge for weekend or evening (after 6 PM)
+	
 	timeSurchargeMultiplier := 1.0
 	if show.StartTime.Weekday() == time.Saturday || show.StartTime.Weekday() == time.Sunday || show.StartTime.Hour() >= 18 {
 		timeSurchargeMultiplier = 1.2
 	}
 
-	// Optimization: Fetch screen once
+	
 	screen, err := s.theaterRepo.GetScreen(show.ScreenID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get screen: %w", err)
 	}
 
-	// Map seats for quick lookup
+	
 	seatMap := make(map[string]catalog.Seat)
 	for _, seat := range screen.Seats {
 		seatMap[seat.ID] = seat
