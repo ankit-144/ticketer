@@ -47,6 +47,7 @@ type Service interface {
 	ConfirmBooking(bookingID string) error
 	CancelBooking(bookingID string) error
 	RevertBooking(bookingID string) error
+	GetBookingsByUser(userID string) ([]*Booking, error)
 }
 
 func (s *BookingService) InitiateBooking(userID string, showID string, showSeatIDs []string) (*Booking, error) {
@@ -200,4 +201,8 @@ func (s *BookingService) ReleaseLockedShowSeats(showSeatIDs []string) {
 	for _, showSeatID := range showSeatIDs {
 		s.lockService.Unlock(showSeatID)
 	}
+}
+
+func (s *BookingService) GetBookingsByUser(userID string) ([]*Booking, error) {
+	return s.bookingRepo.GetByUserID(userID)
 }
