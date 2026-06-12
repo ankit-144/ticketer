@@ -97,3 +97,53 @@ func (r *BookingRepository) GetByID(id string) (*booking.Booking, error) {
 
 	return &b, nil
 }
+
+func (r *BookingRepository) GetByUserID(userID string) ([]*booking.Booking, error) {
+	query := `SELECT id, user_id, show_id, price, status, created_at, updated_at FROM bookings WHERE user_id = $1 ORDER BY created_at DESC`
+	rows, err := r.db.Query(context.Background(), query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bookings []*booking.Booking
+	for rows.Next() {
+		var b booking.Booking
+		var status string
+		if err := rows.Scan(
+			&b.ID,
+			&b.UserID,
+			&b.ShowID,
+			&b.Price,
+			&status,
+			&b.CreatedAt,
+			&b.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		b.Status = booking.BookingStatus(status)
+		bookings = append(bookings, &b)
+	}
+
+	for _, b := range bookings {
+		seatQuery := `SELECT seat_id FROM booking_seats WHERE booking_id = $1`
+		sRows, err := r.db.Query(context.Background(), seatQuery, b.ID)
+		if err != nil {
+			return nil, err
+		}
+		
+		var seatIDs []string
+		for sRows.Next() {
+			var seatID string
+			if err := sRows.Scan(&seatID); err != nil {
+				sRows.Close()
+				return nil, err
+			}
+			seatIDs = append(seatIDs, seatID)
+		}
+		sRows.Close()
+		b.SeatIDs = seatIDs
+	}
+
+	return bookings, nil
+}

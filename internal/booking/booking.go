@@ -26,4 +26,5 @@ type BookingRepository interface {
 	Save(booking *Booking) (*Booking, error)
 	UpdateStatus(id string, status BookingStatus) error
 	GetByID(id string) (*Booking, error)
+	GetByUserID(userID string) ([]*Booking, error)
 }

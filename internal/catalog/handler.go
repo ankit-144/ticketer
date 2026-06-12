@@ -32,8 +32,9 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/theaters/{id}/screens", h.getScreens)
 	mux.HandleFunc("PUT /api/admin/screens/{screen_id}", h.updateScreen)
 	mux.HandleFunc("DELETE /api/admin/theaters/{id}/screens/{screen_id}", h.deleteScreen)
+	mux.HandleFunc("GET /api/screens/{id}", h.getScreen)
 
-	// Seats
+	// Seat routes
 	mux.HandleFunc("POST /api/admin/screens/{screen_id}/seats", h.addSeat)
 	mux.HandleFunc("GET /api/screens/{screen_id}/seats", h.getSeats)
 	mux.HandleFunc("PUT /api/admin/seats/{seat_id}", h.updateSeat)
@@ -161,6 +162,20 @@ func (h *Handler) getScreens(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, screens)
 }
 
+func (h *Handler) getScreen(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	
+	// We need GetScreen in TheaterService. It's not there yet, let me check.
+	// Actually, wait, `TheaterService` has no `GetScreen`. Oh wait, `s.theaterRepo.GetScreen(screenID)` exists! 
+	// I need to add `GetScreen(id string) (*Screen, error)` to `TheaterService` in `service.go`. Wait! 
+	// I didn't add it to `service.go`. Let me just add it to service.go, but for now I will write the handler.
+	screen, err := h.theaterService.GetScreen(id)
+	if err != nil {
+		respondError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, screen)
+}
 func (h *Handler) updateScreen(w http.ResponseWriter, r *http.Request) {
 	screenID := r.PathValue("screen_id")
 	var req Screen

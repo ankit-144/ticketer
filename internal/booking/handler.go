@@ -21,6 +21,7 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/bookings", h.listUserBookings)
 	mux.HandleFunc("POST /api/bookings", h.initiateBooking)
 	mux.HandleFunc("POST /api/bookings/{id}/confirm", h.confirmBooking)
 	mux.HandleFunc("POST /api/bookings/{id}/cancel", h.cancelBooking)
@@ -105,4 +106,38 @@ func (h *Handler) revertBooking(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "reverted"})
+}
+
+func (h *Handler) listUserBookings(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		http.Error(w, `{"error":"user_id query parameter is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	bookings, err := h.service.GetBookingsByUser(userID)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	var response []bookingResponse
+	for _, b := range bookings {
+		response = append(response, bookingResponse{
+			ID:      b.ID,
+			ShowID:  b.ShowID,
+			UserID:  b.UserID,
+			SeatIDs: b.SeatIDs,
+			Price:   b.Price,
+			Status:  string(b.Status),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if response == nil {
+		json.NewEncoder(w).Encode([]bookingResponse{})
+	} else {
+		json.NewEncoder(w).Encode(response)
+	}
 }

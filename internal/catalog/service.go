@@ -101,6 +101,10 @@ func (s *TheaterService) GetScreens(theaterID string) ([]Screen, error) {
 	return th.Screens, nil
 }
 
+func (s *TheaterService) GetScreen(screenID string) (*Screen, error) {
+	return s.theaterRepo.GetScreen(screenID)
+}
+
 func (s *TheaterService) AddSeatToScreen(screenID string, seat *Seat) (*Screen, error) {
 	screenObj, err := s.theaterRepo.GetScreen(screenID)
 	if err == nil {
