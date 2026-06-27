@@ -71,15 +71,9 @@ func (s *BookingService) InitiateBooking(userID string, showID string, showSeatI
 		return nil, fmt.Errorf("movie not found: %w", err)
 	}
 
-	showSeats, err := s.showSeatRepo.GetByShow(showID)
-
+	showSeats, err := s.showSeatRepo.GetByIDs(showSeatIDs)
 	if err != nil {
 		return nil, err
-	}
-
-	showSeatsMap := make(map[string]catalog.ShowSeat)
-	for _, showSeat := range showSeats {
-		showSeatsMap[showSeat.ID] = showSeat
 	}
 
 	for _, showSeatID := range showSeatIDs {
@@ -90,13 +84,13 @@ func (s *BookingService) InitiateBooking(userID string, showID string, showSeatI
 		successfullyLockedShowSeats = append(successfullyLockedShowSeats, showSeatID)
 	}
 
-	for _, showSeatID := range showSeatIDs {
-		seat, ok := showSeatsMap[showSeatID]
-		if !ok {
-			return nil, fmt.Errorf("seat %s not found", showSeatID)
-		}
+	if len(showSeats) != len(showSeatIDs) {
+		return nil, fmt.Errorf("one or more seats not found")
+	}
+
+	for _, seat := range showSeats {
 		if seat.Status != catalog.ShowSeatStatusAvailable {
-			return nil, fmt.Errorf("seat %s is not available", showSeatID)
+			return nil, fmt.Errorf("seat %s is not available", seat.ID)
 		}
 	}
 

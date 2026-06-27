@@ -112,6 +112,27 @@ func (r *TheaterRepository) GetSeats(screenID string) ([]catalog.Seat, error) {
 	return seats, nil
 }
 
+func (r *TheaterRepository) GetSeatsByIDs(seatIDs []string) ([]catalog.Seat, error) {
+	query := `SELECT id, screen_id, row, number, type FROM seats WHERE id = ANY($1)`
+	rows, err := r.db.Query(context.Background(), query, seatIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var seats []catalog.Seat
+	for rows.Next() {
+		var seat catalog.Seat
+		var seatType string
+		if err := rows.Scan(&seat.ID, &seat.ScreenID, &seat.Row, &seat.Number, &seatType); err != nil {
+			return nil, err
+		}
+		seat.Type = catalog.SeatType(seatType)
+		seats = append(seats, seat)
+	}
+	return seats, nil
+}
+
 func (r *TheaterRepository) List() ([]catalog.Theater, error) {
 	query := `SELECT id, admin_id, name, location FROM theaters`
 	rows, err := r.db.Query(context.Background(), query)
