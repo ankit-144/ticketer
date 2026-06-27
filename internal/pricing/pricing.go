@@ -30,26 +30,23 @@ func (s *PricingService) CalculatePrice(movie catalog.Movie, show catalog.Show, 
 		timeSurchargeMultiplier = 1.2
 	}
 
-	theaterSeats, err := s.theaterRepo.GetSeats(show.ScreenID)
+	seatIDs := make([]string, 0, len(seats))
+	for _, s := range seats {
+		seatIDs = append(seatIDs, s.SeatID)
+	}
+
+	theaterSeats, err := s.theaterRepo.GetSeatsByIDs(seatIDs)
 	if err != nil {
 		return 0, err
 	}
 	
-	seatMap := make(map[string]catalog.Seat)
-	for _, seat := range theaterSeats {
-		seatMap[seat.ID] = seat
-	}
-
-	for _, showSeat := range seats {
+	for _, actualSeat := range theaterSeats {
 		seatPrice := movie.BasePrice
-		actualSeat, found := seatMap[showSeat.SeatID]
-		if found {
-			switch actualSeat.Type {
-			case catalog.SeatTypePremium:
-				seatPrice *= 1.5
-			case catalog.SeatTypeVIP:
-				seatPrice *= 2.0
-			}
+		switch actualSeat.Type {
+		case catalog.SeatTypePremium:
+			seatPrice *= 1.5
+		case catalog.SeatTypeVIP:
+			seatPrice *= 2.0
 		}
 
 		totalPrice += seatPrice * timeSurchargeMultiplier

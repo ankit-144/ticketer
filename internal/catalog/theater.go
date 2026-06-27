@@ -35,6 +35,7 @@ type TheaterRepository interface {
 	GetScreen(screenID string) (*Screen, error)
 	GetScreens(theaterID string) ([]Screen, error)
 	GetSeats(screenID string) ([]Seat, error)
+	GetSeatsByIDs(seatIDs []string) ([]Seat, error)
 	List() ([]Theater, error)
 	Save(theater *Theater) error
 	Update(theater *Theater) error
