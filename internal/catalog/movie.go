@@ -58,6 +58,7 @@ type ShowRepository interface {
 
 type ShowSeatRepository interface {
 	GetByID(id string) (*ShowSeat, error)
+	GetByIDs(ids []string) ([]ShowSeat, error)
 	GetByShow(showID string) ([]ShowSeat, error)
 	Save(showSeat *ShowSeat) error
 	UpdateStatuses(ids []string, status ShowSeatStatus) error
