@@ -5,8 +5,11 @@ import (
 	"sort"
 	"ticketer/internal/catalog"
 	"ticketer/internal/core/lock"
+	"ticketer/internal/events"
 	"ticketer/internal/pricing"
 	"time"
+	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -17,6 +20,7 @@ type BookingService struct {
 	showSeatRepo        catalog.ShowSeatRepository
 	pricingService      pricing.Service
 	lockService         lock.LockService
+	eventPublisher      events.EventPublisher
 }
 
 func NewBookingService(
@@ -26,6 +30,7 @@ func NewBookingService(
 	showSeatRepo catalog.ShowSeatRepository,
 	pricingService pricing.Service,
 	lockService lock.LockService,
+	eventPublisher events.EventPublisher,
 ) *BookingService {
 
 	if bookingRepo == nil || movieRepo == nil || showRepo == nil || showSeatRepo == nil || pricingService == nil || lockService == nil {
@@ -39,6 +44,7 @@ func NewBookingService(
 		showSeatRepo:        showSeatRepo,
 		pricingService:      pricingService,
 		lockService:         lockService,
+		eventPublisher:      eventPublisher,
 	}
 }
 
@@ -48,6 +54,8 @@ type Service interface {
 	CancelBooking(bookingID string) error
 	RevertBooking(bookingID string) error
 	GetBookingsByUser(userID string) ([]*Booking, error)
+	GetBookingDetails(bookingID string) (*BookingDetails, error)
+	EnrichBooking(booking *Booking) (*BookingDetails, error)
 }
 
 func (s *BookingService) InitiateBooking(userID string, showID string, showSeatIDs []string) (*Booking, error) {
@@ -144,6 +152,21 @@ func (s *BookingService) ConfirmBooking(bookingID string) error {
 		return err
 	}
 	s.ReleaseLockedShowSeats(booking.SeatIDs)
+
+	// Publish event
+	if s.eventPublisher != nil {
+		templateData := s.buildEventTemplateData(booking)
+		
+		event := events.GenericEventEnvelope{
+			UserID:        booking.UserID,
+			EventType:     "BOOKING_CONFIRMED",
+			SourceService: "ticketer",
+			Timestamp:     time.Now().Format(time.RFC3339),
+			TemplateData:  templateData,
+		}
+		_ = s.eventPublisher.PublishEvent(context.Background(), event)
+	}
+
 	return nil
 }
 
@@ -188,6 +211,20 @@ func (s *BookingService) CancelBooking(bookingID string) error {
 		return err
 	}
 
+	// Publish event
+	if s.eventPublisher != nil {
+		templateData := s.buildEventTemplateData(booking)
+
+		event := events.GenericEventEnvelope{
+			UserID:        booking.UserID,
+			EventType:     "BOOKING_CANCELLED",
+			SourceService: "ticketer",
+			Timestamp:     time.Now().Format(time.RFC3339),
+			TemplateData:  templateData,
+		}
+		_ = s.eventPublisher.PublishEvent(context.Background(), event)
+	}
+
 	return nil
 }
 
@@ -199,4 +236,61 @@ func (s *BookingService) ReleaseLockedShowSeats(showSeatIDs []string) {
 
 func (s *BookingService) GetBookingsByUser(userID string) ([]*Booking, error) {
 	return s.bookingRepo.GetByUserID(userID)
+}
+
+func (s *BookingService) GetBookingDetails(bookingID string) (*BookingDetails, error) {
+	booking, err := s.bookingRepo.GetByID(bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("booking not found: %w", err)
+	}
+	return s.EnrichBooking(booking)
+}
+
+func (s *BookingService) EnrichBooking(booking *Booking) (*BookingDetails, error) {
+	details := &BookingDetails{
+		Booking: booking,
+	}
+
+	show, err := s.showRepo.GetByID(booking.ShowID)
+	if err == nil {
+		details.Show = show
+		movie, err := s.movieRepo.GetByID(show.MovieID)
+		if err == nil {
+			details.Movie = movie
+		}
+	}
+
+	showSeats, err := s.showSeatRepo.GetByIDs(booking.SeatIDs)
+	if err == nil {
+		details.ShowSeats = showSeats
+	}
+
+	return details, nil
+}
+
+func (s *BookingService) buildEventTemplateData(booking *Booking) map[string]interface{} {
+	details, _ := s.EnrichBooking(booking)
+	
+	var movieTitle string
+	var showTime string
+	var seatNames []string
+
+	if details.Movie != nil {
+		movieTitle = details.Movie.Title
+	}
+	if details.Show != nil {
+		showTime = details.Show.StartTime.Format(time.RFC3339)
+	}
+	for _, seat := range details.ShowSeats {
+		seatNames = append(seatNames, seat.SeatID)
+	}
+
+	return map[string]any{
+		"bookingId": booking.ID,
+		"showId":    booking.ShowID,
+		"price":     booking.Price,
+		"movieName": movieTitle,
+		"showTime":  showTime,
+		"seats":     seatNames,
+	}
 }
