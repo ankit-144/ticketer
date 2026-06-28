@@ -16,6 +16,7 @@ import (
 	catalogpostgres "ticketer/internal/catalog/postgres"
 	"ticketer/internal/core/database"
 	"ticketer/internal/core/lock"
+	"ticketer/internal/events"
 	"ticketer/internal/pricing"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -28,6 +29,18 @@ var Module = fx.Module("app",
 		zap.NewProduction,
 		database.NewDB,
 		fx.Annotate(lock.NewInMemoryLockService, fx.As(new(lock.LockService))),
+		func(logger *zap.Logger) (events.EventPublisher, error) {
+			uri := os.Getenv("RABBITMQ_URI")
+			if uri == "" {
+				uri = "amqp://guest:guest@localhost:5672/"
+			}
+			pub, err := events.NewRabbitMQPublisher(uri, "notification.exchange", "notification.routing.key")
+			if err != nil {
+				logger.Warn("Failed to connect to RabbitMQ, using nil publisher", zap.Error(err))
+				return nil, nil // Return nil so app starts even if RMQ is down (BookingService checks for nil)
+			}
+			return pub, nil
+		},
 	),
 
 	// Repositories

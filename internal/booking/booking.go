@@ -1,6 +1,9 @@
 package booking
 
-import "time"
+import (
+	"time"
+	"ticketer/internal/catalog"
+)
 
 type BookingStatus string
 
@@ -20,6 +23,13 @@ type Booking struct {
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Price     float64       `json:"price"`
+}
+
+type BookingDetails struct {
+	Booking   *Booking           `json:"booking"`
+	Movie     *catalog.Movie     `json:"movie"`
+	Show      *catalog.Show      `json:"show"`
+	ShowSeats []catalog.ShowSeat `json:"show_seats"`
 }
 
 type BookingRepository interface {

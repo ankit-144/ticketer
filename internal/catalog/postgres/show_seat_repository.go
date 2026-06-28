@@ -33,6 +33,32 @@ func (r *ShowSeatRepository) GetByID(id string) (*catalog.ShowSeat, error) {
 	return &seat, nil
 }
 
+func (r *ShowSeatRepository) GetByIDs(ids []string) ([]catalog.ShowSeat, error) {
+	query := `SELECT id, show_id, seat_id, status FROM show_seats WHERE id = ANY($1)`
+	rows, err := r.db.Query(context.Background(), query, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var seats []catalog.ShowSeat
+	for rows.Next() {
+		var seat catalog.ShowSeat
+		var status string
+		if err := rows.Scan(
+			&seat.ID,
+			&seat.ShowID,
+			&seat.SeatID,
+			&status,
+		); err != nil {
+			return nil, err
+		}
+		seat.Status = catalog.ShowSeatStatus(status)
+		seats = append(seats, seat)
+	}
+	return seats, nil
+}
+
 func (r *ShowSeatRepository) GetByShow(showID string) ([]catalog.ShowSeat, error) {
 	query := `SELECT id, show_id, seat_id, status FROM show_seats WHERE show_id = $1`
 	rows, err := r.db.Query(context.Background(), query, showID)
